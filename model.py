@@ -1,5 +1,8 @@
 import pandas as pd
+import shap
 import duckdb
+import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -49,3 +52,35 @@ importance = pd.DataFrame({
 }).sort_values(by="importance", ascending=False)
 
 print(importance)
+
+# shap analysis
+print("\n SHAP ANALYSIS")
+
+X_sample = X_test.sample(200, random_state=42)
+
+explainer = shap.TreeExplainer(model)
+shap_values = explainer(X_sample)
+
+class_index = 2
+
+# Global importance 
+shap_importance = np.abs(shap_values.values[:, :, class_index]).mean(axis=0)
+
+shap_df = pd.DataFrame({
+    "feature": X_sample.columns,
+    "importance": shap_importance
+}).sort_values(by="importance", ascending=False)
+
+print(shap_df)
+
+shap.summary_plot(shap_values[:, :, class_index], X_sample)
+shap.plots.waterfall(shap_values[0, :, class_index])
+
+sample_index = 0
+# local importance
+print("\nLOCAL SHAP (Player 0)")
+
+values = shap_values.values[sample_index, :, class_index]
+
+for feature, value, shap_val in zip(X_sample.columns, X_sample.iloc[sample_index], values):
+    print(feature, value, shap_val)
